@@ -1,0 +1,17 @@
+{
+    "name": "college-credit-transfer-system",
+    "version": "1.0.0",
+    "description": "Root package for simple command execution",
+    "scripts": {
+        "start": "bash run_project.sh",
+        "install:all": "npm install --prefix backend && npm install --prefix frontend",
+        "cap:sync": "npm run cap:sync --prefix frontend",
+        "cap:open:android": "npm run cap:open:android --prefix frontend",
+        "cap:open:ios": "npm run cap:open:ios --prefix frontend",
+        "web:dev": "npm run dev --prefix frontend",
+        "api:dev": "npm run dev --prefix backend"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
