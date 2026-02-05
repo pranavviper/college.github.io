@@ -123,6 +123,7 @@ const FacultyDashboard = () => {
                 <ApplicationDetailsModal
                     application={selectedApplication}
                     onClose={() => setSelectedApplication(null)}
+                    onStatusUpdate={handleStatusUpdate}
                 />
             )}
         </div>

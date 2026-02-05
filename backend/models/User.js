@@ -30,7 +30,8 @@ const userSchema = mongoose.Schema({
         required: true
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    collection: 'login'
 });
 
 // Match user entered password to hashed password in database

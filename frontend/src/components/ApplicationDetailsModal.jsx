@@ -1,6 +1,6 @@
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
-const ApplicationDetailsModal = ({ application, onClose }) => {
+const ApplicationDetailsModal = ({ application, onClose, onStatusUpdate }) => {
     if (!application) return null;
 
     return (
@@ -83,6 +83,18 @@ const ApplicationDetailsModal = ({ application, onClose }) => {
                                                 <p className="text-sm font-medium text-slate-700">Dropped Elective Code</p>
                                                 <p className="text-sm text-slate-600">{course.droppedElectiveCode}</p>
                                             </div>
+                                            {course.proofFile && (
+                                                <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-2">
+                                                    <a
+                                                        href={`${import.meta.env.VITE_API_URL}${course.proofFile}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                    >
+                                                        <FileText size={16} /> View Certificate
+                                                    </a>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -122,6 +134,18 @@ const ApplicationDetailsModal = ({ application, onClose }) => {
                                             <p className="text-sm font-medium text-slate-700">Semester</p>
                                             <p className="text-sm text-slate-600">{internship.semester}</p>
                                         </div>
+                                        {internship.proofFile && (
+                                            <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-2">
+                                                <a
+                                                    href={`${import.meta.env.VITE_API_URL}${internship.proofFile}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                                >
+                                                    <FileText size={16} /> View Completion Certificate
+                                                </a>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -129,8 +153,30 @@ const ApplicationDetailsModal = ({ application, onClose }) => {
                     )}
                 </div>
 
-                <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end">
-                    <button onClick={onClose} className="btn btn-secondary">Close</button>
+                <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+                    <button onClick={onClose} className="btn bg-slate-200 text-slate-800 hover:bg-slate-300">Close</button>
+                    {application.status === 'Pending' && onStatusUpdate && (
+                        <>
+                            <button
+                                onClick={() => {
+                                    onStatusUpdate(application._id, 'Rejected');
+                                    onClose();
+                                }}
+                                className="btn bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-2"
+                            >
+                                <X size={18} /> Reject
+                            </button>
+                            <button
+                                onClick={() => {
+                                    onStatusUpdate(application._id, 'Approved');
+                                    onClose();
+                                }}
+                                className="btn bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                            >
+                                <Check size={18} /> Approve
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

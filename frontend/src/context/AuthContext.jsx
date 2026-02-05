@@ -12,11 +12,30 @@ export const AuthProvider = ({ children }) => {
             const userInfo = JSON.parse(localStorage.getItem('userInfo'));
             if (userInfo) {
                 setUser(userInfo);
-                // Optional: Verify token with backend
             }
             setLoading(false);
         };
         checkUserLoggedIn();
+
+        // Setup Axios Interceptor for 401s
+        const interceptor = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response && error.response.status === 401) {
+                    // Only logout if we are currently logged in to avoid loops or unnecessary updates
+                    if (localStorage.getItem('userInfo')) {
+                        logout();
+                        // optional: window.location.href = '/login'; 
+                        // But state change in AuthContext should trigger re-render of ProtectedRoute
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            axios.interceptors.response.eject(interceptor);
+        };
     }, []);
 
     const login = async (email, password) => {
