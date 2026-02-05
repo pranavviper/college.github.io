@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-// const File = require('../models/File');
+const cloudinary = require('../config/cloudinary');
+const streamifier = require('streamifier');
 
 // Use memory storage to get buffer
 const storage = multer.memoryStorage();
@@ -15,7 +16,7 @@ function checkFileType(file, cb) {
     if (extname && mimetype) {
         return cb(null, true);
     } else {
-        cb('PDFs only!');
+        cb('Error: PDFs Only!');
     }
 }
 
@@ -28,47 +29,42 @@ const upload = multer({
 });
 
 // @route   POST /api/upload
-// @desc    Upload file to MongoDB
+// @desc    Upload a PDF file to Cloudinary
 router.post('/', upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).send('No file uploaded');
         }
 
-        const newFile = new File({
-            filename: `${req.file.fieldname}-${Date.now()}${path.extname(req.file.originalname)}`,
-            contentType: req.file.mimetype,
-            data: req.file.buffer
-        });
+        const uploadFromBuffer = (buffer) => {
+            return new Promise((resolve, reject) => {
+                let cld_upload_stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: 'college_applications',
+                        resource_type: 'raw', // 'raw' is best for PDFs to prevent auto-conversion/manipulation
+                        public_id: `${req.file.fieldname}-${Date.now()}`
+                    },
+                    (error, result) => {
+                        if (result) {
+                            resolve(result);
+                        } else {
+                            reject(error);
+                        }
+                    }
+                );
+                streamifier.createReadStream(buffer).pipe(cld_upload_stream);
+            });
+        };
 
-        const savedFile = await newFile.save();
+        const result = await uploadFromBuffer(req.file.buffer);
 
         res.send({
             message: 'File uploaded',
-            filePath: `/api/upload/file/${savedFile._id}`, // This URL will now point to our backend route
+            filePath: result.secure_url, // Return the Cloudinary URL
         });
     } catch (error) {
         console.error(error);
         res.status(500).send('Server Error during upload');
-    }
-});
-
-// @route   GET /api/upload/file/:id
-// @desc    Serve file from MongoDB
-router.get('/file/:id', async (req, res) => {
-    try {
-        const file = await File.findById(req.params.id);
-
-        if (!file) {
-            return res.status(404).send('File not found');
-        }
-
-        res.set('Content-Type', file.contentType);
-        // Optional: ensure filename is safe
-        res.send(file.data);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Server Error');
     }
 });
 
