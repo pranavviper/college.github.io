@@ -13,7 +13,10 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true
+}));
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
@@ -22,6 +25,9 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/od', require('./routes/odRoutes'));
+app.use('/api/events', require('./routes/eventRoutes'));
+app.use('/api/achievements', require('./routes/achievementRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 

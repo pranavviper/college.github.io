@@ -12,7 +12,7 @@ const Login = () => {
 
     useEffect(() => {
         if (user) {
-            if (user.role === 'student') navigate('/student');
+            if (user.role === 'student') navigate('/');
             else if (user.role === 'faculty') navigate('/faculty');
         }
     }, [user, navigate]);
