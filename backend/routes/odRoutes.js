@@ -71,4 +71,22 @@ router.put('/:id/status', protect, async (req, res) => {
     }
 });
 
+// @desc    Delete OD request
+// @route   DELETE /api/od/:id
+// @access  Private (Admin/Faculty)
+router.delete('/:id', protect, async (req, res) => {
+    try {
+        const odRequest = await ODRequest.findById(req.params.id);
+
+        if (odRequest) {
+            await odRequest.deleteOne();
+            res.json({ message: 'OD Request removed' });
+        } else {
+            res.status(404).json({ message: 'OD Request not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

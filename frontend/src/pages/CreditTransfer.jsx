@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import AuthContext from '../context/AuthContext';
 import axios from 'axios';
-import { Plus, FileText, CheckCircle, Trash2 } from 'lucide-react';
+import { Plus, FileText, CheckCircle, Trash2, Download, Search } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const CreditTransfer = () => {
@@ -13,6 +13,11 @@ const CreditTransfer = () => {
     const [editId, setEditId] = useState(null);
     const [applicationType, setApplicationType] = useState('online_course'); // 'online_course' or 'internship'
 
+    // Admin View State
+    const [adminApplications, setAdminApplications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+
     // Form State
     const [formData, setFormData] = useState({
         academicYear: '2025-2026',
@@ -23,27 +28,61 @@ const CreditTransfer = () => {
     });
 
     useEffect(() => {
-        // Check if we are editing an application
-        if (location.state && location.state.appData) {
-            const app = location.state.appData;
-            setFormData({
-                academicYear: app.academicYear || '',
-                batch: app.batch || '',
-                semester: app.semester || '',
-                courses: app.courses || [],
-                internships: app.internships || []
-            });
-            setEditId(app._id);
-            setIsEditing(true);
+        if (user.role === 'admin') {
+            fetchAllApplications();
+        } else {
+            // Check if we are editing an application
+            if (location.state && location.state.appData) {
+                const app = location.state.appData;
+                setFormData({
+                    academicYear: app.academicYear || '',
+                    batch: app.batch || '',
+                    semester: app.semester || '',
+                    courses: app.courses || [],
+                    internships: app.internships || []
+                });
+                setEditId(app._id);
+                setIsEditing(true);
 
-            // Determine type based on data
-            if (app.internships && app.internships.length > 0) {
-                setApplicationType('internship');
-            } else {
-                setApplicationType('online_course');
+                // Determine type based on data
+                if (app.internships && app.internships.length > 0) {
+                    setApplicationType('internship');
+                } else {
+                    setApplicationType('online_course');
+                }
             }
         }
-    }, [location.state]);
+    }, [location.state, user.role]);
+
+    const fetchAllApplications = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            const { data } = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/applications`, config);
+            setAdminApplications(data);
+            setLoading(false);
+        } catch (error) {
+            console.error(error);
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this application?')) {
+            try {
+                const config = { headers: { Authorization: `Bearer ${user.token}` } };
+                await axios.delete(`${import.meta.env.VITE_API_URL || ''}/api/applications/${id}`, config);
+                setAdminApplications(prev => prev.filter(app => app._id !== id));
+                alert('Application deleted successfully');
+            } catch (error) {
+                alert('Error deleting application');
+            }
+        }
+    };
+
+    const filteredApplications = adminApplications.filter(app =>
+        app.student?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.student?.registerNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // --- Course Helpers ---
     const addCourse = () => {
@@ -166,6 +205,99 @@ const CreditTransfer = () => {
         }
     };
 
+    // Admin List View
+    if (user.role === 'admin') {
+        return (
+            <div className="max-w-6xl mx-auto py-8">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold mb-2 text-primary">All Applications</h1>
+                        <p className="text-slate-500">Manage all student credit transfer requests.</p>
+                    </div>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg w-64 focus:outline-none focus:border-primary"
+                            placeholder="Search student..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <Search className="absolute left-3 top-2.5 text-slate-400" size={18} />
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    {loading ? (
+                        <p className="p-8 text-center text-slate-500">Loading applications...</p>
+                    ) : filteredApplications.length === 0 ? (
+                        <p className="p-8 text-center text-slate-500">No applications found.</p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50 border-b border-slate-200">
+                                    <tr>
+                                        <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Student</th>
+                                        <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Department</th>
+                                        <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Type</th>
+                                        <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Status</th>
+                                        <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider">Date</th>
+                                        <th className="p-4 font-semibold text-slate-600 text-sm uppercase tracking-wider text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredApplications.map((app) => (
+                                        <tr key={app._id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="p-4">
+                                                <div className="font-bold text-slate-800">{app.student?.name || 'Unknown'}</div>
+                                                <div className="text-xs text-slate-500">{app.student?.registerNumber}</div>
+                                            </td>
+                                            <td className="p-4 text-sm text-slate-600">{app.department}</td>
+                                            <td className="p-4">
+                                                {app.courses?.length > 0 ? (
+                                                    <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-xs font-semibold">Online Course</span>
+                                                ) : (
+                                                    <span className="px-2 py-1 bg-purple-50 text-purple-600 rounded text-xs font-semibold">Internship</span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${app.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                                                        app.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                    {app.status}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-sm text-slate-500">
+                                                {new Date(app.createdAt).toLocaleDateString()}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {app.status === 'Approved' && (
+                                                        <button className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors" title="Download PDF">
+                                                            <Download size={18} />
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDelete(app._id)}
+                                                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // Default Student Form View
     return (
         <div className="max-w-4xl mx-auto py-8">
             <h1 className="text-3xl font-bold mb-8 text-center text-primary">
@@ -238,8 +370,8 @@ const CreditTransfer = () => {
                             type="button"
                             onClick={() => setApplicationType('online_course')}
                             className={`flex-1 py-3 px-4 rounded-md font-semibold text-sm transition-all ${applicationType === 'online_course'
-                                    ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             Online Course
@@ -248,8 +380,8 @@ const CreditTransfer = () => {
                             type="button"
                             onClick={() => setApplicationType('internship')}
                             className={`flex-1 py-3 px-4 rounded-md font-semibold text-sm transition-all ${applicationType === 'internship'
-                                    ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                ? 'bg-white text-primary shadow-sm ring-1 ring-slate-200'
+                                : 'text-slate-500 hover:text-slate-700'
                                 }`}
                         >
                             Industry Internship

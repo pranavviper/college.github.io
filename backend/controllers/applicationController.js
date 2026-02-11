@@ -214,11 +214,30 @@ const updateApplication = async (req, res) => {
     }
 };
 
+// @desc    Delete application
+// @route   DELETE /api/applications/:id
+// @access  Private (Admin/Faculty)
+const deleteApplication = async (req, res) => {
+    try {
+        const application = await Application.findById(req.params.id);
+
+        if (application) {
+            await application.deleteOne();
+            res.json({ message: 'Application removed' });
+        } else {
+            res.status(404).json({ message: 'Application not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createApplication,
     getApplications,
     getApplicationById,
     updateApplicationStatus,
     generatePDF,
-    updateApplication
+    updateApplication,
+    deleteApplication
 };

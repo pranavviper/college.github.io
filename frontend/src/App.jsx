@@ -4,6 +4,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import StudentDashboard from './pages/StudentDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminStudentList from './pages/AdminStudentList';
+import AdminFacultyList from './pages/AdminFacultyList';
 import Navbar from './components/Navbar';
 import TopBar from './components/TopBar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,9 +20,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-background text-primary flex flex-col md:flex-row">
+        <div className="min-h-screen bg-background text-slate-900 flex flex-col md:flex-row font-sans">
           <Navbar />
-          <div className="flex-1 container mx-auto md:ml-64">
+          <div className="flex-1 w-full md:ml-72 transition-all duration-300">
             <TopBar />
             <div className="px-4 py-8">
               <Routes>
@@ -56,6 +59,22 @@ function App() {
                 <Route path="/faculty" element={
                   <ProtectedRoute role="faculty">
                     <FacultyDashboard />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/admin" element={
+                  <ProtectedRoute role="admin">
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/students" element={
+                  <ProtectedRoute role="admin">
+                    <AdminStudentList />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/faculty" element={
+                  <ProtectedRoute role="admin">
+                    <AdminFacultyList />
                   </ProtectedRoute>
                 } />
               </Routes>

@@ -28,6 +28,7 @@ app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/od', require('./routes/odRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/achievements', require('./routes/achievementRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 

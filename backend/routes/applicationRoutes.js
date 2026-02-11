@@ -6,7 +6,8 @@ const {
     getApplicationById,
     updateApplicationStatus,
     generatePDF,
-    updateApplication
+    updateApplication,
+    deleteApplication
 } = require('../controllers/applicationController');
 const { protect, faculty } = require('../middleware/authMiddleware');
 
@@ -16,7 +17,8 @@ router.route('/')
 
 router.route('/:id')
     .get(protect, getApplicationById)
-    .put(protect, updateApplication);
+    .put(protect, updateApplication)
+    .delete(protect, deleteApplication);
 
 router.route('/:id/status')
     .put(protect, faculty, updateApplicationStatus);

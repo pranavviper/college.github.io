@@ -50,7 +50,19 @@ const Register = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="email" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                        <input
+                            type="email"
+                            className="input-field"
+                            value={email}
+                            onChange={(e) => {
+                                let val = e.target.value;
+                                if (val.endsWith('@') && val.length > email.length) {
+                                    val += 'rajalakshmi.edu.in';
+                                }
+                                setEmail(val);
+                            }}
+                            required
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Password</label>

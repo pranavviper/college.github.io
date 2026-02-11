@@ -1,5 +1,5 @@
 import { useState, useContext, useEffect } from 'react';
-import { Briefcase, Clock, FileText, Plus, Check, X } from 'lucide-react';
+import { Briefcase, Clock, FileText, Plus, Check, X, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 
@@ -26,7 +26,9 @@ const OD = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             // Fetch All if faculty, else fetch 'my'
-            const endpoint = user.role === 'faculty' ? `${import.meta.env.VITE_API_URL || ''}/api/od` : `${import.meta.env.VITE_API_URL || ''}/api/od/my`;
+            const endpoint = (user.role === 'faculty' || user.role === 'admin')
+                ? `${import.meta.env.VITE_API_URL || ''}/api/od`
+                : `${import.meta.env.VITE_API_URL || ''}/api/od/my`;
             const { data } = await axios.get(endpoint, config);
             setOdRequests(data);
             setLoading(false);
@@ -44,6 +46,19 @@ const OD = () => {
         } catch (error) {
             console.error(error);
             alert('Error updating status');
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Are you sure you want to delete this OD request?')) {
+            try {
+                const config = { headers: { Authorization: `Bearer ${user.token}` } };
+                await axios.delete(`${import.meta.env.VITE_API_URL || ''}/api/od/${id}`, config);
+                setOdRequests(prev => prev.filter(od => od._id !== id));
+                alert('OD Request deleted successfully');
+            } catch (error) {
+                alert('Error deleting OD request');
+            }
         }
     };
 
@@ -108,21 +123,21 @@ const OD = () => {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold mb-2 text-slate-800">
-                        {user.role === 'faculty' ? 'OD Approvals' : 'On-Duty Requests'}
+                        {user.role === 'faculty' ? 'OD Approvals' : user.role === 'admin' ? 'Manage OD Requests' : 'On-Duty Requests'}
                     </h1>
                     <p className="text-slate-500">
-                        {user.role === 'faculty' ? 'Manage and verify student On-Duty requests.' : 'Manage your OD applications for events, medical leave, etc.'}
+                        {user.role === 'faculty' ? 'Manage and verify student On-Duty requests.' : user.role === 'admin' ? 'View and manage all OD requests.' : 'Manage your OD applications for events, medical leave, etc.'}
                     </p>
                 </div>
-                {user.role !== 'faculty' && (
+                {user.role === 'student' && (
                     <button onClick={() => setShowForm(!showForm)} className="btn btn-primary">
                         {showForm ? 'Cancel' : <><Plus size={20} /> New OD Request</>}
                     </button>
                 )}
             </div>
 
-            {/* Form (Hidden for Faculty) */}
-            {showForm && user.role !== 'faculty' && (
+            {/* Form (Hidden for Faculty/Admin) */}
+            {showForm && user.role === 'student' && (
                 <div className="card mb-10 border-l-4 border-l-primary animate-in slide-in-from-top-4 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h2 className="text-xl font-bold mb-4 text-slate-800">New OD Application</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -222,8 +237,8 @@ const OD = () => {
                                         </div>
                                     </div>
 
-                                    {/* Student details for Faculty */}
-                                    {user.role === 'faculty' && od.student && (
+                                    {/* Student details for Faculty/Admin */}
+                                    {(user.role === 'faculty' || user.role === 'admin') && od.student && (
                                         <div className="text-sm font-semibold text-slate-700 mb-1">
                                             {od.student.name} <span className="text-slate-400 font-normal">({od.student.registerNumber})</span>
                                         </div>
@@ -245,38 +260,51 @@ const OD = () => {
                                 </div>
                             </div>
 
-                            {/* Faculty Actions */}
-                            {user.role === 'faculty' && od.status === 'Pending' && (
-                                <div className="flex gap-2 shrink-0 border-l pl-4 border-slate-100 ml-2">
-                                    <button
-                                        onClick={() => handleStatusUpdate(od._id, 'Approved')}
-                                        className="btn bg-green-50 text-green-600 hover:bg-green-100 p-2 rounded-lg"
-                                        title="Approve"
-                                    >
-                                        <Check size={20} />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            if (window.confirm('Reject this request?')) handleStatusUpdate(od._id, 'Rejected');
-                                        }}
-                                        className="btn bg-red-50 text-red-600 hover:bg-red-100 p-2 rounded-lg"
-                                        title="Reject"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                    {od.proofFile && (
-                                        <a
-                                            href={getFileUrl(od.proofFile)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="btn bg-blue-50 text-blue-600 hover:bg-blue-100 p-2 rounded-lg"
-                                            title="View Proof"
+                            <div className="flex gap-2 shrink-0 border-l pl-4 border-slate-100 ml-2">
+                                {/* Faculty Actions */}
+                                {user.role === 'faculty' && od.status === 'Pending' && (
+                                    <>
+                                        <button
+                                            onClick={() => handleStatusUpdate(od._id, 'Approved')}
+                                            className="btn bg-green-50 text-green-600 hover:bg-green-100 p-2 rounded-lg"
+                                            title="Approve"
                                         >
-                                            <FileText size={20} />
-                                        </a>
-                                    )}
-                                </div>
-                            )}
+                                            <Check size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('Reject this request?')) handleStatusUpdate(od._id, 'Rejected');
+                                            }}
+                                            className="btn bg-red-50 text-red-600 hover:bg-red-100 p-2 rounded-lg"
+                                            title="Reject"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                        {od.proofFile && (
+                                            <a
+                                                href={getFileUrl(od.proofFile)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="btn bg-blue-50 text-blue-600 hover:bg-blue-100 p-2 rounded-lg"
+                                                title="View Proof"
+                                            >
+                                                <FileText size={20} />
+                                            </a>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* Admin Delete Action */}
+                                {(user.role === 'admin' || user.role === 'faculty') && (
+                                    <button
+                                        onClick={() => handleDelete(od._id)}
+                                        className="btn bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-600 p-2 rounded-lg transition-colors"
+                                        title="Delete Request"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))
                 )}

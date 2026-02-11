@@ -65,4 +65,22 @@ router.post('/:id/register', protect, async (req, res) => {
     }
 });
 
+// @desc    Delete event
+// @route   DELETE /api/events/:id
+// @access  Private (Admin/Faculty)
+router.delete('/:id', protect, async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id);
+
+        if (event) {
+            await event.deleteOne();
+            res.json({ message: 'Event removed' });
+        } else {
+            res.status(404).json({ message: 'Event not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

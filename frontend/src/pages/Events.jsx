@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { Calendar, MapPin, Clock, Plus, X, User } from 'lucide-react';
+import { Calendar, MapPin, Clock, Plus, Trash2, User } from 'lucide-react';
 import axios from 'axios';
 import AuthContext from '../context/AuthContext';
 
@@ -66,6 +66,19 @@ const Events = () => {
             fetchEvents(); // Refresh to update count/status
         } catch (error) {
             alert(error.response?.data?.message || 'Error registering');
+        }
+    };
+
+    const handleDelete = async (eventId) => {
+        if (window.confirm('Are you sure you want to delete this event?')) {
+            try {
+                const config = { headers: { Authorization: `Bearer ${user.token}` } };
+                await axios.delete(`${import.meta.env.VITE_API_URL || ''}/api/events/${eventId}`, config);
+                alert('Event deleted successfully');
+                setEvents(prev => prev.filter(event => event._id !== eventId));
+            } catch (error) {
+                alert('Error deleting event');
+            }
         }
     };
 
@@ -191,7 +204,21 @@ const Events = () => {
             ) : (
                 <div className="grid md:grid-cols-2 gap-6">
                     {events.map((event) => (
-                        <div key={event._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                        <div key={event._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group">
+                            {/* Delete Button for Admin/Faculty */}
+                            {(user && (user.role === 'admin' || user.role === 'faculty')) && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(event._id);
+                                    }}
+                                    className="absolute top-2 right-2 bg-white/90 p-2 rounded-full text-red-500 hover:bg-red-50 hover:text-red-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="Delete Event"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            )}
+
                             <div className={`h-2 ${event.category === 'Technical' ? 'bg-blue-500' :
                                 event.category === 'Cultural' ? 'bg-pink-500' :
                                     event.category === 'Workshop' ? 'bg-green-500' : 'bg-purple-500'
@@ -232,13 +259,13 @@ const Events = () => {
                                 </div>
 
                                 {/* Registration Button for Students */}
-                                {user && user.role !== 'faculty' && (
+                                {user && user.role !== 'faculty' && user.role !== 'admin' && (
                                     <button
                                         onClick={() => handleRegister(event._id)}
                                         disabled={isRegistered(event) || isFull(event)}
                                         className={`w-full py-2 rounded-lg font-bold transition-colors ${isRegistered(event) ? 'bg-green-100 text-green-700 cursor-default' :
-                                                isFull(event) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' :
-                                                    'bg-primary text-white hover:bg-primary-dark'
+                                            isFull(event) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' :
+                                                'bg-primary text-white hover:bg-primary-dark'
                                             }`}
                                     >
                                         {isRegistered(event) ? 'Registered' :

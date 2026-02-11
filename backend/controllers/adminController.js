@@ -1,0 +1,133 @@
+const asyncHandler = require('express-async-handler');
+const User = require('../models/User');
+const Application = require('../models/Application');
+const ODRequest = require('../models/ODRequest');
+
+// @desc    Get system statistics
+// @route   GET /api/admin/stats
+// @access  Private/Admin
+const getStats = asyncHandler(async (req, res) => {
+    const totalStudents = await User.countDocuments({ role: 'student' });
+    const totalFaculty = await User.countDocuments({ role: 'faculty' });
+    const totalApplications = await Application.countDocuments();
+    const totalODRequests = await ODRequest.countDocuments();
+
+    // Get recent activity (last 5 applications)
+    const recentApplications = await Application.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate('student', 'name email registerNumber');
+
+    res.json({
+        counts: {
+            students: totalStudents,
+            faculty: totalFaculty,
+            applications: totalApplications,
+            odRequests: totalODRequests
+        },
+        recentActivity: recentApplications
+    });
+});
+
+// @desc    Get all users
+// @route   GET /api/admin/users
+// @access  Private/Admin
+const getAllUsers = asyncHandler(async (req, res) => {
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    res.json(users);
+});
+
+// @desc    Create a new user
+// @route   POST /api/admin/users
+// @access  Private/Admin
+const createUser = asyncHandler(async (req, res) => {
+    const { name, email, password, role, department, registerNumber } = req.body;
+
+    const userExists = await User.findOne({ email });
+
+    if (userExists) {
+        res.status(400);
+        throw new Error('User already exists');
+    }
+
+    const user = await User.create({
+        name,
+        email,
+        password,
+        role,
+        department,
+        registerNumber
+    });
+
+    if (user) {
+        res.status(201).json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+        });
+    } else {
+        res.status(400);
+        throw new Error('Invalid user data');
+    }
+});
+
+// @desc    Update user
+// @route   PUT /api/admin/users/:id
+// @access  Private/Admin
+const updateUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+        user.name = req.body.name || user.name;
+        user.email = req.body.email || user.email;
+        user.role = req.body.role || user.role;
+        user.department = req.body.department || user.department;
+        user.registerNumber = req.body.registerNumber || user.registerNumber;
+
+        if (req.body.password) {
+            user.password = req.body.password;
+        }
+
+        const updatedUser = await user.save();
+
+        res.json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            role: updatedUser.role,
+            department: updatedUser.department,
+            registerNumber: updatedUser.registerNumber
+        });
+    } else {
+        res.status(404);
+        throw new Error('User not found');
+    }
+});
+
+// @desc    Delete user
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+const deleteUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+        if (user.role === 'admin') {
+            res.status(400);
+            throw new Error('Cannot delete admin user');
+        }
+        await user.deleteOne();
+        res.json({ message: 'User removed' });
+    } else {
+        res.status(404);
+        throw new Error('User not found');
+    }
+});
+
+module.exports = {
+    getStats,
+    getAllUsers,
+    createUser,
+    updateUser,
+    deleteUser
+};

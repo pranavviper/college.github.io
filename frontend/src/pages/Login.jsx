@@ -40,7 +40,13 @@ const Login = () => {
                             type="email"
                             className="input-field"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={(e) => {
+                                let val = e.target.value;
+                                if (val.endsWith('@') && val.length > email.length) {
+                                    val += 'rajalakshmi.edu.in';
+                                }
+                                setEmail(val);
+                            }}
                             required
                         />
                     </div>
