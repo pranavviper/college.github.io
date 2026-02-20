@@ -18,7 +18,6 @@ const CreditTransfer = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Form State
     const [formData, setFormData] = useState({
         academicYear: '2025-2026',
         batch: '',
@@ -30,20 +29,30 @@ const CreditTransfer = () => {
 
     const [eligibleCourses, setEligibleCourses] = useState([]);
     const [isOtherCourse, setIsOtherCourse] = useState({}); // Track "Other" selection per course index
+    const [verifiedAchievements, setVerifiedAchievements] = useState([]);
 
     useEffect(() => {
-        const fetchCourses = async () => {
+        const fetchCoursesAndAchievements = async () => {
             try {
                 const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                const { data } = await axios.get(`${import.meta.env.VITE_API_URL || ''}/api/courses`, config);
-                const eligible = data.filter(c => c.isCreditTransferEligible);
+                const [coursesRes, achievementsRes] = await Promise.all([
+                    axios.get(`${import.meta.env.VITE_API_URL || ''}/api/courses`, config),
+                    axios.get(`${import.meta.env.VITE_API_URL || ''}/api/achievements`, config)
+                ]);
+
+                const eligible = coursesRes.data.filter(c => c.isCreditTransferEligible);
                 setEligibleCourses(eligible);
+
+                const verified = achievementsRes.data.filter(a => a.status === 'Verified');
+                setVerifiedAchievements(verified);
             } catch (error) {
-                console.error("Error fetching courses", error);
+                console.error("Error fetching data", error);
             }
         };
-        fetchCourses();
-    }, [user.token]);
+        if (user.role !== 'admin') {
+            fetchCoursesAndAchievements();
+        }
+    }, [user.token, user.role]);
 
     const handleCourseSelection = (index, value) => {
         const newCourses = [...formData.courses];
@@ -128,19 +137,19 @@ const CreditTransfer = () => {
     );
 
     // --- Course Helpers ---
-    const addCourse = () => {
+    const addCourse = (achievement = null) => {
         setFormData({
             ...formData,
             courses: [...formData.courses, {
                 courseType: '3 Credits', // default
                 recSubjectCode: '',
-                courseName: '',
-                offeringUniversity: '', // Organization/Institution
+                courseName: achievement ? achievement.title : '',
+                offeringUniversity: achievement && achievement.description ? achievement.description.split(',')[0] || '' : '', // Try to guess or leave empty
                 grade: '',
                 droppedElective: '',
                 droppedElectiveCode: '', // Although not explicitly in image for all columns, standard to keep
                 semester: formData.semester,
-                proofFile: ''
+                proofFile: achievement ? achievement.proofFile : ''
             }]
         });
     };
@@ -156,18 +165,17 @@ const CreditTransfer = () => {
         setFormData({ ...formData, courses: newCourses });
     };
 
-    // --- Internship Helpers ---
-    const addInternship = () => {
+    const addInternship = (achievement = null) => {
         setFormData({
             ...formData,
             internships: [...formData.internships, {
                 industrySubjectCode: '',
-                companyName: '',
-                duration: '', // Period
+                companyName: achievement ? achievement.title : '',
+                duration: achievement ? achievement.description : '', // Period
                 grade: '',
                 droppedElective: '',
                 semester: formData.semester,
-                proofFile: ''
+                proofFile: achievement ? achievement.proofFile : ''
             }]
         });
     };
@@ -444,6 +452,30 @@ const CreditTransfer = () => {
                     {applicationType === 'online_course' ? (
                         /* Online Course Form */
                         <div className="space-y-6">
+                            <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-semibold text-blue-900 text-sm">Use a Verified Achievement</h4>
+                                    <p className="text-xs text-blue-700">Select an approved online course to auto-fill details.</p>
+                                </div>
+                                <select
+                                    className="input-field max-w-xs text-sm py-1.5"
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            const selected = verifiedAchievements.find(a => a._id === e.target.value);
+                                            if (selected) {
+                                                addCourse(selected);
+                                            }
+                                            e.target.value = ''; // Reset
+                                        }
+                                    }}
+                                >
+                                    <option value="">-- Auto-fill from Achievements --</option>
+                                    {verifiedAchievements.filter(a => a.type === 'Online Course').map(a => (
+                                        <option key={a._id} value={a._id}>{a.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {formData.courses.map((course, index) => (
                                 <div key={index} className="bg-slate-50 p-5 rounded-lg border border-slate-200 relative group">
                                     <div className="absolute top-4 right-4">
@@ -461,7 +493,11 @@ const CreditTransfer = () => {
                                                 onChange={(e) => handleCourseSelection(index, e.target.value)}
                                             >
                                                 <option value="">-- Select Eligible Course --</option>
-                                                {eligibleCourses.map(c => (
+                                                {eligibleCourses.filter(c =>
+                                                    !formData.courses.some((otherCourse, otherIndex) =>
+                                                        otherIndex !== index && otherCourse.droppedElectiveCode === c.code
+                                                    )
+                                                ).map(c => (
                                                     <option key={c._id} value={c._id}>{c.name} ({c.code}) - {c.credits} Credits</option>
                                                 ))}
                                                 <option value="other">Other (Manual Entry)</option>
@@ -552,6 +588,30 @@ const CreditTransfer = () => {
                     ) : (
                         /* Internship Form */
                         <div className="space-y-6">
+                            <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-100 flex items-center justify-between">
+                                <div>
+                                    <h4 className="font-semibold text-purple-900 text-sm">Use a Verified Achievement</h4>
+                                    <p className="text-xs text-purple-700">Select an approved internship to auto-fill details.</p>
+                                </div>
+                                <select
+                                    className="input-field max-w-xs text-sm py-1.5"
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            const selected = verifiedAchievements.find(a => a._id === e.target.value);
+                                            if (selected) {
+                                                addInternship(selected);
+                                            }
+                                            e.target.value = ''; // Reset
+                                        }
+                                    }}
+                                >
+                                    <option value="">-- Auto-fill from Achievements --</option>
+                                    {verifiedAchievements.filter(a => a.type === 'Internship').map(a => (
+                                        <option key={a._id} value={a._id}>{a.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {formData.internships.map((internship, index) => (
                                 <div key={index} className="bg-slate-50 p-5 rounded-lg border border-slate-200 relative group">
                                     <div className="absolute top-4 right-4">

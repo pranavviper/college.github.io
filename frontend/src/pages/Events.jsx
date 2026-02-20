@@ -8,6 +8,7 @@ const Events = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -83,7 +84,10 @@ const Events = () => {
     };
 
     const isRegistered = (event) => {
-        return event.registeredStudents && event.registeredStudents.includes(user?._id);
+        if (!event.registeredStudents) return false;
+        return event.registeredStudents.some(student =>
+            (typeof student === 'object' ? student._id === user?._id : student === user?._id)
+        );
     };
 
     const isFull = (event) => {
@@ -204,7 +208,13 @@ const Events = () => {
             ) : (
                 <div className="grid md:grid-cols-2 gap-6">
                     {events.map((event) => (
-                        <div key={event._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group">
+                        <div key={event._id}
+                            className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col relative group ${(user && (user.role === 'admin' || user.role === 'faculty')) ? 'cursor-pointer' : ''}`}
+                            onClick={() => {
+                                if (user && (user.role === 'admin' || user.role === 'faculty')) {
+                                    setSelectedEvent(event);
+                                }
+                            }}>
                             {/* Delete Button for Admin/Faculty */}
                             {(user && (user.role === 'admin' || user.role === 'faculty')) && (
                                 <button
@@ -276,6 +286,52 @@ const Events = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+            {/* Selected Event Modal */}
+            {selectedEvent && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b border-slate-200 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800">{selectedEvent.title}</h2>
+                                <p className="text-sm text-slate-500">Registered Students</p>
+                            </div>
+                            <button onClick={() => setSelectedEvent(null)} className="text-slate-500 hover:text-slate-800 bg-slate-100 px-3 py-1 rounded-md text-sm font-medium">
+                                Close
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto">
+                            {selectedEvent.registeredStudents.length === 0 ? (
+                                <div className="text-center text-slate-500 py-10 bg-slate-50 rounded-lg border border-slate-100">
+                                    <p>No students registered for this event yet.</p>
+                                </div>
+                            ) : (
+                                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 border-b border-slate-200">
+                                                <th className="p-4 text-sm font-semibold text-slate-600">S.No</th>
+                                                <th className="p-4 text-sm font-semibold text-slate-600">Reg Number</th>
+                                                <th className="p-4 text-sm font-semibold text-slate-600">Name</th>
+                                                <th className="p-4 text-sm font-semibold text-slate-600">Department</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedEvent.registeredStudents.map((student, idx) => (
+                                                <tr key={student._id || idx} className="border-b border-slate-100 hover:bg-emerald-50/50 transition-colors">
+                                                    <td className="p-4 text-sm text-slate-500">{idx + 1}</td>
+                                                    <td className="p-4 text-sm font-medium font-mono text-slate-700">{student.registerNumber || '-'}</td>
+                                                    <td className="p-4 text-sm font-medium text-slate-900">{student.name || '-'}</td>
+                                                    <td className="p-4 text-sm text-slate-600">{student.department || '-'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

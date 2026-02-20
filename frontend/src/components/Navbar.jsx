@@ -86,7 +86,12 @@ const Navbar = () => {
                                     </NavLink>
                                 )}
                                 {user.role === 'faculty' && (
-                                    <NavLink to="/faculty/courses" icon={BookOpen}>Add Course</NavLink>
+                                    <>
+                                        <NavLink to="/faculty/courses" icon={BookOpen}>Add Course</NavLink>
+                                        <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 mt-6">Application</p>
+                                        <NavLink to="/internship" icon={Briefcase}>Internship</NavLink>
+                                        <NavLink to="/nptel" icon={BookOpen}>NPTEL Course</NavLink>
+                                    </>
                                 )}
 
                                 {user.role !== 'admin' && (
@@ -184,7 +189,12 @@ const Navbar = () => {
                                     </MobileNavLink>
                                 )}
                                 {user.role === 'faculty' && (
-                                    <MobileNavLink to="/faculty/courses" icon={BookOpen} onClick={() => setIsMenuOpen(false)}>Add Course</MobileNavLink>
+                                    <>
+                                        <MobileNavLink to="/faculty/courses" icon={BookOpen} onClick={() => setIsMenuOpen(false)}>Add Course</MobileNavLink>
+                                        <p className="px-4 text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 mt-4">Application</p>
+                                        <MobileNavLink to="/internship" icon={Briefcase} onClick={() => setIsMenuOpen(false)}>Internship</MobileNavLink>
+                                        <MobileNavLink to="/nptel" icon={BookOpen} onClick={() => setIsMenuOpen(false)}>NPTEL Course</MobileNavLink>
+                                    </>
                                 )}
                             </div>
 

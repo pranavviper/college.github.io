@@ -8,7 +8,9 @@ const { protect } = require('../middleware/authMiddleware');
 // @access  Public (or Private)
 router.get('/', async (req, res) => {
     try {
-        const events = await Event.find({}).sort({ createdAt: -1 });
+        const events = await Event.find({})
+            .populate('registeredStudents', 'name email registerNumber department')
+            .sort({ createdAt: -1 });
         res.json(events);
     } catch (error) {
         res.status(500).json({ message: error.message });

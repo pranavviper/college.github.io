@@ -19,6 +19,8 @@ import Achievements from './pages/Achievements';
 import ChangePassword from './pages/ChangePassword';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import FacultyNptel from './pages/FacultyNptel';
+import FacultyInternships from './pages/FacultyInternships';
 
 function App() {
   return (
@@ -75,6 +77,16 @@ function App() {
                 <Route path="/faculty/courses" element={
                   <ProtectedRoute role="faculty">
                     <CourseManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="/nptel" element={
+                  <ProtectedRoute role="faculty">
+                    <FacultyNptel />
+                  </ProtectedRoute>
+                } />
+                <Route path="/internship" element={
+                  <ProtectedRoute role="faculty">
+                    <FacultyInternships />
                   </ProtectedRoute>
                 } />
 
