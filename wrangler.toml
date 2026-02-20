@@ -1,5 +1,0 @@
-name = "college"
-compatibility_date = "2026-02-20"
-
-[assets]
-directory = "./dist"
