@@ -52,11 +52,47 @@ export const AuthProvider = ({ children }) => {
     const register = async (userData) => {
         try {
             const { data } = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/register`, userData);
+            if (data.token) {
+                setUser(data);
+                localStorage.setItem('userInfo', JSON.stringify(data));
+            }
+            return data;
+        } catch (error) {
+            if (error.response?.status === 202) {
+                return error.response.data;
+            }
+            throw error.response?.data?.message || 'Registration failed';
+        }
+    };
+
+    const googleAuth = async (token) => {
+        try {
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/google`, { token });
             setUser(data);
             localStorage.setItem('userInfo', JSON.stringify(data));
             return data;
         } catch (error) {
-            throw error.response?.data?.message || 'Registration failed';
+            if (error.response?.status === 202) {
+                // User needs to complete registration
+                return error.response.data;
+            }
+            throw error.response?.data?.message || 'Google Login failed';
+        }
+    };
+
+    const googleRegister = async (userData) => {
+        try {
+            const { data } = await axios.post(`${import.meta.env.VITE_API_URL || ''}/api/auth/google-register`, userData);
+            if (data.token) {
+                setUser(data);
+                localStorage.setItem('userInfo', JSON.stringify(data));
+            }
+            return data;
+        } catch (error) {
+            if (error.response?.status === 202) {
+                return error.response.data;
+            }
+            throw error.response?.data?.message || 'Google Registration failed';
         }
     };
 
@@ -66,7 +102,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, googleAuth, googleRegister, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

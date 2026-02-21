@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import AuthContext from '../context/AuthContext';
 
 const Login = () => {
@@ -7,7 +8,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    const { login, user } = useContext(AuthContext);
+    const { login, googleAuth, user } = useContext(AuthContext);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -22,6 +23,22 @@ const Login = () => {
         setError('');
         try {
             await login(email, password);
+        } catch (err) {
+            setError(err);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        try {
+            setError('');
+            const res = await googleAuth(credentialResponse.credential);
+            if (res && res.message === 'User needs to complete registration') {
+                // Redirect to register page with google token
+                navigate('/register', { state: { googleData: res, token: credentialResponse.credential } });
+            } else if (res && res.message) {
+                // E.g., Registration successful, but account is pending admin approval
+                setError(res.message);
+            }
         } catch (err) {
             setError(err);
         }
@@ -69,6 +86,24 @@ const Login = () => {
                         Login
                     </button>
                 </form>
+
+                <div className="mt-6 flex flex-col items-center">
+                    <div className="relative flex py-5 items-center w-full">
+                        <div className="flex-grow border-t border-gray-300"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">or</span>
+                        <div className="flex-grow border-t border-gray-300"></div>
+                    </div>
+                    <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => {
+                            setError('Google Login Failed');
+                        }}
+                        theme="outline"
+                        text="signin_with"
+                        shape="rectangular"
+                    />
+                </div>
+
                 <p className="mt-4 text-center text-sm">
                     Don't have an account? <Link to="/register" className="text-accent hover:underline">Register</Link>
                 </p>

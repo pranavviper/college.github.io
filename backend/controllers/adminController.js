@@ -147,20 +147,6 @@ const deleteUser = asyncHandler(async (req, res) => {
             throw new Error('Cannot delete the default system admin');
         }
 
-        // Optional: Protect all admins? 
-        // For now, let's allow deleting other admins if the current user is an admin (which they must be to hit this route)
-        // But the previous code prevented deleting ANY admin. User request was "can't delete admin user" which might imply the default one specifically.
-        // Let's keep the broad restriction for safety, OR just the specific one. 
-        // "can't delete admin user" - singular, likely referring to the default one.
-        // However, existing code had:
-        /*
-        if (user.role === 'admin') {
-            res.status(400);
-            throw new Error('Cannot delete admin user');
-        }
-        */
-        // I will keep the broad restriction as it's safer, but customize message for default admin.
-
         if (user.role === 'admin') {
             res.status(400);
             throw new Error('Cannot delete admin user');
@@ -173,10 +159,33 @@ const deleteUser = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Toggle user approval status
+// @route   PATCH /api/admin/users/:id/approve
+// @access  Private/Admin
+const toggleApproval = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id);
+
+    if (user) {
+        user.isApproved = !user.isApproved;
+        const updatedUser = await user.save();
+
+        res.json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            isApproved: updatedUser.isApproved
+        });
+    } else {
+        res.status(404);
+        throw new Error('User not found');
+    }
+});
+
 module.exports = {
     getStats,
     getAllUsers,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    toggleApproval
 };

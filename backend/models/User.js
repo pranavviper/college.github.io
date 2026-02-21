@@ -30,6 +30,10 @@ const userSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    isApproved: {
+        type: Boolean,
+        default: true
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date
 }, {

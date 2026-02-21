@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useContext } from 'react';
 import AuthContext from '../context/AuthContext';
-import { Plus, Search, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 
 const AdminStudentList = () => {
@@ -42,6 +42,16 @@ const AdminStudentList = () => {
             } catch (err) {
                 alert(err.response?.data?.message || 'Failed to delete user');
             }
+        }
+    };
+
+    const handleToggleApproval = async (id) => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            await axios.patch(`${API_URL}/admin/users/${id}/approve`, {}, config);
+            fetchUsers();
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to update approval status');
         }
     };
 
@@ -126,8 +136,6 @@ const AdminStudentList = () => {
                         >
                             <option value="All">All Depts</option>
                             <option value="CSBS">CSBS</option>
-                            <option value="CSE">CSE</option>
-                            <option value="IT">IT</option>
                         </select>
                     </div>
                     <button
@@ -146,6 +154,7 @@ const AdminStudentList = () => {
                                 <th className="p-4">Register No</th>
                                 <th className="p-4">Email</th>
                                 <th className="p-4">Department</th>
+                                <th className="p-4 text-center">Status</th>
                                 <th className="p-4 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -156,7 +165,25 @@ const AdminStudentList = () => {
                                     <td className="p-4 text-slate-600 font-mono text-sm">{u.registerNumber || '-'}</td>
                                     <td className="p-4 text-slate-600">{u.email}</td>
                                     <td className="p-4 text-slate-600">{u.department}</td>
+                                    <td className="p-4 text-center">
+                                        {u.isApproved ? (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                                <CheckCircle size={14} /> Approved
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                <XCircle size={14} /> Pending
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="p-4 text-right flex justify-end gap-2">
+                                        <button
+                                            onClick={() => handleToggleApproval(u._id)}
+                                            className={`p-2 rounded-lg transition-colors ${u.isApproved ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                                            title={u.isApproved ? "Revoke Approval" : "Approve User"}
+                                        >
+                                            {u.isApproved ? <XCircle size={18} /> : <CheckCircle size={18} />}
+                                        </button>
                                         <button
                                             onClick={() => openEditModal(u)}
                                             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -229,8 +256,6 @@ const AdminStudentList = () => {
                                 <select className="input-field" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })}>
                                     <option value="">Select Dept</option>
                                     <option value="CSBS">CSBS</option>
-                                    <option value="CSE">CSE</option>
-                                    <option value="IT">IT</option>
                                 </select>
                             </div>
                             <div className="pt-4 flex gap-3">
@@ -274,8 +299,6 @@ const AdminStudentList = () => {
                                 <select className="input-field" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })}>
                                     <option value="">Select Dept</option>
                                     <option value="CSBS">CSBS</option>
-                                    <option value="CSE">CSE</option>
-                                    <option value="IT">IT</option>
                                 </select>
                             </div>
                             <div className="pt-4 flex gap-3">

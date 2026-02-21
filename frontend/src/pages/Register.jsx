@@ -1,17 +1,21 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import AuthContext from '../context/AuthContext';
 
 const Register = () => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const location = useLocation();
+
+    const [name, setName] = useState(location.state?.googleData?.name || '');
+    const [email, setEmail] = useState(location.state?.googleData?.email || '');
     const [password, setPassword] = useState('');
     const [role, setRole] = useState('student');
     const [department, setDepartment] = useState('');
     const [registerNumber, setRegisterNumber] = useState('');
     const [error, setError] = useState('');
+    const [googleToken, setGoogleToken] = useState(location.state?.token || null);
 
-    const { register, user } = useContext(AuthContext);
+    const { register, googleAuth, googleRegister, user } = useContext(AuthContext);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -31,7 +35,35 @@ const Register = () => {
         }
 
         try {
-            await register({ name, email, password, role, department, registerNumber });
+            let res;
+            if (googleToken) {
+                res = await googleRegister({ token: googleToken, role, department, registerNumber });
+            } else {
+                res = await register({ name, email, password, role, department, registerNumber });
+            }
+
+            if (res && res.message) {
+                // Registration successful, but account is pending admin approval
+                setError(res.message);
+            }
+
+        } catch (err) {
+            setError(err);
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        try {
+            setError('');
+            const res = await googleAuth(credentialResponse.credential);
+            if (res && res.message === 'User needs to complete registration') {
+                setName(res.name);
+                setEmail(res.email);
+                setGoogleToken(credentialResponse.credential);
+            } else if (res && res.message) {
+                // E.g., Registration successful, but account is pending admin approval
+                setError(res.message);
+            }
         } catch (err) {
             setError(err);
         }
@@ -64,10 +96,12 @@ const Register = () => {
                             required
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Password</label>
-                        <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                    </div>
+                    {!googleToken && (
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Password</label>
+                            <input type="password" className="input-field" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -81,10 +115,7 @@ const Register = () => {
                             <label className="block text-sm font-medium mb-1">Department</label>
                             <select className="input-field" value={department} onChange={(e) => setDepartment(e.target.value)} required>
                                 <option value="">Select Dept</option>
-                                <option value="CSE">CSE</option>
-                                <option value="ECE">ECE</option>
-                                <option value="MECH">MECH</option>
-                                <option value="IT">IT</option>
+                                <option value="CSBS">CSBS</option>
                             </select>
                         </div>
                     </div>
@@ -96,8 +127,30 @@ const Register = () => {
                         </div>
                     )}
 
-                    <button type="submit" className="btn btn-primary w-full">Register</button>
+                    <button type="submit" className="btn btn-primary w-full">
+                        {googleToken ? 'Complete Registration' : 'Register'}
+                    </button>
                 </form>
+
+                {!googleToken && (
+                    <div className="mt-6 flex flex-col items-center">
+                        <div className="relative flex py-5 items-center w-full">
+                            <div className="flex-grow border-t border-gray-300"></div>
+                            <span className="flex-shrink-0 mx-4 text-gray-400 text-sm">or</span>
+                            <div className="flex-grow border-t border-gray-300"></div>
+                        </div>
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => {
+                                setError('Google Login Failed');
+                            }}
+                            theme="outline"
+                            text="signup_with"
+                            shape="rectangular"
+                        />
+                    </div>
+                )}
+
                 <p className="mt-4 text-center text-sm">
                     Already have an account? <Link to="/login" className="text-accent hover:underline">Login</Link>
                 </p>

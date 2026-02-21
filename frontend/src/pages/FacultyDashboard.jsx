@@ -49,10 +49,7 @@ const FacultyDashboard = () => {
                     </Link>
                     <select className="input-field py-1" value={filter} onChange={(e) => setFilter(e.target.value)}>
                         <option value="">All Departments</option>
-                        <option value="CSE">CSE</option>
-                        <option value="ECE">ECE</option>
-                        <option value="MECH">MECH</option>
-                        <option value="IT">IT</option>
+                        <option value="CSBS">CSBS</option>
                     </select>
                 </div>
             </div>

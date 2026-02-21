@@ -5,7 +5,8 @@ const {
     getAllUsers,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    toggleApproval
 } = require('../controllers/adminController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
@@ -19,5 +20,6 @@ router.route('/users')
 router.route('/users/:id')
     .put(updateUser)
     .delete(deleteUser);
+router.patch('/users/:id/approve', toggleApproval);
 
 module.exports = router;

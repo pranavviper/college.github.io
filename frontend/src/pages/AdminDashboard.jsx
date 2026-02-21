@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useContext } from 'react';
 import AuthContext from '../context/AuthContext';
-import { Users, FileText, Calendar, Trash2, Plus, Search, Edit, X } from 'lucide-react';
+import { Users, FileText, Calendar, Trash2, Plus, Search, Edit, X, CheckCircle, XCircle } from 'lucide-react';
 import axios from 'axios';
 
 const AdminDashboard = () => {
@@ -59,6 +59,16 @@ const AdminDashboard = () => {
             } catch (err) {
                 alert(err.response?.data?.message || 'Failed to delete user');
             }
+        }
+    };
+
+    const handleToggleApproval = async (id) => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${user.token}` } };
+            await axios.patch(`${API_URL}/admin/users/${id}/approve`, {}, config);
+            fetchUsers();
+        } catch (err) {
+            alert(err.response?.data?.message || 'Failed to update approval status');
         }
     };
 
@@ -226,6 +236,7 @@ const AdminDashboard = () => {
                                     <th className="p-4">Email</th>
                                     <th className="p-4">Role</th>
                                     <th className="p-4">Department</th>
+                                    <th className="p-4 text-center">Status</th>
                                     <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -243,7 +254,27 @@ const AdminDashboard = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-slate-600">{u.department}</td>
+                                        <td className="p-4 text-center">
+                                            {u.isApproved ? (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                                    <CheckCircle size={14} /> Approved
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                                    <XCircle size={14} /> Pending
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="p-4 text-right flex justify-end gap-2">
+                                            {u.role !== 'admin' && (
+                                                <button
+                                                    onClick={() => handleToggleApproval(u._id)}
+                                                    className={`p-2 rounded-lg transition-colors ${u.isApproved ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'}`}
+                                                    title={u.isApproved ? "Revoke Approval" : "Approve User"}
+                                                >
+                                                    {u.isApproved ? <XCircle size={18} /> : <CheckCircle size={18} />}
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => openEditModal(u)}
                                                 className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -328,8 +359,6 @@ const AdminDashboard = () => {
                                     <select className="input-field" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })}>
                                         <option value="">Select Dept</option>
                                         <option value="CSBS">CSBS</option>
-                                        <option value="CSE">CSE</option>
-                                        <option value="IT">IT</option>
                                     </select>
                                 </div>
                             </div>
@@ -397,8 +426,6 @@ const AdminDashboard = () => {
                                     <select className="input-field" value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })}>
                                         <option value="">Select Dept</option>
                                         <option value="CSBS">CSBS</option>
-                                        <option value="CSE">CSE</option>
-                                        <option value="IT">IT</option>
                                     </select>
                                 </div>
                             </div>

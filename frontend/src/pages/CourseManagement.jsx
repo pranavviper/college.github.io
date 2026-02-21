@@ -140,10 +140,6 @@ const CourseManagement = () => {
                             onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                         >
                             <option value="CSBS">CSBS</option>
-                            <option value="CSE">CSE</option>
-                            <option value="IT">IT</option>
-                            <option value="AIDS">AIDS</option>
-                            <option value="ECE">ECE</option>
                         </select>
                     </div>
                     <div>

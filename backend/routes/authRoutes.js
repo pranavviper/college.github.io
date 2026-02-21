@@ -3,6 +3,8 @@ const router = express.Router();
 const {
     registerUser,
     loginUser,
+    googleAuth,
+    googleRegister,
     getMe,
     changePassword,
     forgotPassword,
@@ -12,6 +14,8 @@ const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/google', googleAuth);
+router.post('/google-register', googleRegister);
 router.get('/me', protect, getMe);
 router.post('/change-password', protect, changePassword);
 router.post('/forgotpassword', forgotPassword);

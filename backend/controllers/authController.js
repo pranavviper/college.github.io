@@ -2,6 +2,9 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
+const { OAuth2Client } = require('google-auth-library');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Generate JWT
 const generateToken = (id) => {
@@ -22,10 +25,8 @@ const registerUser = async (req, res) => {
         throw new Error('Please add all required fields');
     }
 
-    if (!email.endsWith('@rajalakshmi.edu.in')) {
-        res.status(400);
-        throw new Error('Please use your college email (@rajalakshmi.edu.in)');
-    }
+    // Determine approval status
+    const isApproved = email.endsWith('@rajalakshmi.edu.in');
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -42,10 +43,17 @@ const registerUser = async (req, res) => {
         password,
         role: role || 'student',
         department,
-        registerNumber
+        registerNumber,
+        isApproved
     });
 
     if (user) {
+        if (!user.isApproved) {
+            return res.status(202).json({
+                message: 'Registration successful, but account is pending admin approval'
+            });
+        }
+
         res.status(201).json({
             _id: user.id,
             name: user.name,
@@ -71,6 +79,11 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+        if (!user.isApproved && user.role !== 'admin') {
+            res.status(403);
+            throw new Error('Account pending admin approval');
+        }
+
         res.json({
             _id: user.id,
             name: user.name,
@@ -85,6 +98,125 @@ const loginUser = async (req, res) => {
         throw new Error('Invalid credentials');
     }
 };
+
+// @desc    Authenticate with Google
+// @route   POST /api/auth/google
+// @access  Public
+const googleAuth = async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        res.status(400);
+        throw new Error('No Google token provided');
+    }
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { email, name } = payload;
+
+        const user = await User.findOne({ email });
+
+        if (user) {
+            if (!user.isApproved && user.role !== 'admin') {
+                res.status(403);
+                throw new Error('Account pending admin approval');
+            }
+
+            // Log the user in
+            return res.json({
+                _id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                registerNumber: user.registerNumber,
+                token: generateToken(user._id),
+            });
+        } else {
+            // User does not exist, tell frontend to prompt for details
+            return res.status(202).json({
+                message: 'User needs to complete registration',
+                email: email,
+                name: name,
+            });
+        }
+    } catch (error) {
+        res.status(401);
+        throw new Error('Invalid Google token');
+    }
+};
+
+// @desc    Register a new user from Google
+// @route   POST /api/auth/google-register
+// @access  Public
+const googleRegister = async (req, res) => {
+    const { token, role, department, registerNumber } = req.body;
+
+    if (!token || !department || !role) {
+        res.status(400);
+        throw new Error('Please provide token, role, and department');
+    }
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { email, name } = payload;
+
+        const isApproved = email.endsWith('@rajalakshmi.edu.in');
+
+        const userExists = await User.findOne({ email });
+
+        if (userExists) {
+            res.status(400);
+            throw new Error('User already exists');
+        }
+
+        // Generate a random strong password for the user since they authenticate via Google
+        const randomPassword = crypto.randomBytes(16).toString('hex');
+
+        const user = await User.create({
+            name,
+            email,
+            password: randomPassword,
+            role,
+            department,
+            registerNumber,
+            isApproved
+        });
+
+        if (user) {
+            if (!user.isApproved) {
+                return res.status(202).json({
+                    message: 'Registration successful, but account is pending admin approval'
+                });
+            }
+
+            res.status(201).json({
+                _id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                registerNumber: user.registerNumber,
+                token: generateToken(user._id),
+            });
+        } else {
+            res.status(400);
+            throw new Error('Invalid user data');
+        }
+    } catch (error) {
+        res.status(401);
+        throw new Error('Invalid Google token');
+    }
+};
+
 
 // @desc    Get user data
 // @route   GET /api/auth/me
@@ -196,6 +328,8 @@ const resetPassword = async (req, res) => {
 module.exports = {
     registerUser,
     loginUser,
+    googleAuth,
+    googleRegister,
     getMe,
     changePassword,
     forgotPassword,
